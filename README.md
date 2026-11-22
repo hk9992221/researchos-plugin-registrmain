@@ -1,6 +1,6 @@
 # ResearchOS Plugin Registry
 
-Official plugin index repository for **ResearchOS** (SPEC-14).
+Official plugin index repository for **ResearchOS**.
 
 ## Repository Structure
 
