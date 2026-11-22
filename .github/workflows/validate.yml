@@ -1,0 +1,27 @@
+name: Validate Registry
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate registry schema
+        if: github.event_name == 'push'
+        run: node scripts/validate-registry.mjs
+
+      - name: Validate registry schema & verify release checksums
+        if: github.event_name == 'pull_request'
+        run: node scripts/validate-registry.mjs --verify-downloads

@@ -1,0 +1,48 @@
+# Copy this workflow into your plugin repository at:
+#   .github/workflows/release.yml
+#
+# Triggered when pushing a version tag like `v1.0.0`.
+# It packages your plugin root (excluding .git / .github / node_modules),
+# computes the SHA-256 checksum, and publishes a GitHub Release.
+
+name: Release ResearchOS Plugin
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout plugin repo
+        uses: actions/checkout@v4
+
+      - name: Read manifest.json & package zip
+        id: pkg
+        run: |
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("manifest.json", "utf8"));
+            if (!m.id || !m.version) throw new Error("manifest.json missing id or version");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `id=${m.id}\nversion=${m.version}\n`);
+          '
+          ZIP_NAME="${{ steps.pkg.outputs.id }}-${{ steps.pkg.outputs.version }}.zip"
+          zip -r "$ZIP_NAME" . -x ".git/*" ".github/*" "node_modules/*" "*.zip"
+          SHA256=$(sha256sum "$ZIP_NAME" | awk '{print $1}')
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.pkg.outputs.zip_name }}
+          body: |
+            ResearchOS Plugin Release `${{ steps.pkg.outputs.version }}`
+            - **Plugin ID**: `${{ steps.pkg.outputs.id }}`
+            - **SHA-256**: `${{ steps.pkg.outputs.sha256 }}`
